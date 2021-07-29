@@ -1,11 +1,11 @@
 """ Bincrafters Cache Remover
 
-This script removes all dummy package from cache repositories in Artifactories.
+This script removes all dummy packages from cached repositories in Artifactory.
 Some important notes:
 - Those *-cache Repositories in Artifactory, actually are Storage
-- If you try to list all repositories using API, *-cache is not there
+- If you try to list all repositories using API, *-cache are not there
 - Storages only return the first folder/file level when listing with the API
-- We need to execute a recursive search to check a Storage is empty or not
+- We need to execute a recursive search to check if a Storage is empty or not
 - If a Storage contains only index.json files, Then is considered as Empty
 - All Empty Storages should be removed
 
@@ -89,15 +89,19 @@ def get_storage_url(remote, repository):
 
 
 def is_empty_package(remote, repository, storage, token):
+    """ Execute a recursive call to validate is a storage is empty or not
+    :param remote: Artifactory remote name e.g. bincrafters
+    :param repository: Repository name e.g. bintray-conan-cache
+    :param storage: Internal storage name e.g. user
+    :param token: Artifactory Access Token. Not really required for public repositories.
+    :return: True if storage is empty. Otherwise, False.
+    """
     logger.info(f"Recursive call to URI: {storage}")
-    print(f"Recursive call to URI: {storage}")
     repository_url = get_storage_url(remote, repository)
     uri = storage["uri"]
     logger.debug(f"Recursive call to URI: {uri}")
-    print(f"Recursive call to URI: {uri}")
     result = recursive_search(repository_url, uri, token)
     logger.debug(f"Storage {uri} is empty: {result}")
-    print(f"Storage {uri} is empty: {result}")
     return result
 
 
@@ -111,10 +115,8 @@ def recursive_search(storage_path, uri, token):
     """
     url = storage_path + uri
     logger.debug(f"GET: {url}")
-    print(f"GET: {url}")
     response = requests.get(url, headers=get_headers(token)).json()
     logger.debug(f'CHILDREN: {response["children"]}')
-    print(f'CHILDREN: {response["children"]}')
     for child in response["children"]:
         if child["folder"] is False and child["uri"] != "/index.json":
             return False
@@ -124,6 +126,15 @@ def recursive_search(storage_path, uri, token):
 
 
 def list_packages(remote, repository, json_path=None, token=None):
+    """ List all empty repositories in Artifactory remote
+        This method list the storages in the repository and one by one, look into for files which are not named
+        as index.json. All storages identified as empty, will be stored in the json file.
+    :param remote: Artifactory remote name e.g. bincrafters
+    :param repository: Artifactory repository name e.g. bintray-conan-cache
+    :param json_path: JSON file path to be saved with listed content
+    :param token: Artifactory Access token for API. Not really required for public repositories.
+    :return: Dictionary with all empty storages
+    """
     url = get_storage_url(remote, repository)
     logger.debug(f"Storage URL: {url}")
     response = requests.get(url, headers=get_headers(token))
@@ -139,7 +150,8 @@ def list_packages(remote, repository, json_path=None, token=None):
     if json_path:
         with open(json_path, 'w') as json_fd:
             json.dump(json_response, json_fd, indent=2, sort_keys=True)
-    print(json_response)
+    logger.debug(json_response)
+    return json_response
 
 
 def remove_packages(json_file, dryrun, token):
