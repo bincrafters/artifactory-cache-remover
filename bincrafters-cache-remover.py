@@ -9,6 +9,12 @@ Some important notes:
 - If a Storage contains only index.json files, Then is considered as Empty
 - All Empty Storages should be removed
 
+Artifactory API reference for this script:
+
+- https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-Authentication
+- https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-DeleteItem
+- https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-FolderInfo
+
 """
 import textwrap
 import json
@@ -176,6 +182,8 @@ def remove_packages(json_file, dryrun, token):
             logger.warning("Running Dry-run mode. No real deletion will be executed.")
         for child in children:
             url = json_content["uri"] + child["uri"]
+            # Delete method can not be used with API. Instead, use directly url
+            url = url.replace("/api/storage", "")
             logger.debug(f"Delete: {url}")
             if not dryrun:
                 response = requests.delete(url=url, headers=get_headers(token))
