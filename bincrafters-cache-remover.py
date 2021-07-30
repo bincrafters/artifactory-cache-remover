@@ -117,17 +117,21 @@ def recursive_search(storage_path, uri, token):
     :param storage_path: Artifactory Storage URL
     :param uri: Recursive folder path listed in the Storage
     :param token: Artifactory API Token
-    :return: True is the Storage is Empty. Otherwise, False
+    :return: False is found some file which is not index.json. Otherwise, True
     """
     url = storage_path + uri
     logger.debug(f"GET: {url}")
     response = requests.get(url, headers=get_headers(token)).json()
     logger.debug(f'CHILDREN: {response["children"]}')
     for child in response["children"]:
-        if child["folder"] is False and child["uri"] != "/index.json":
-            return False
+        if child["folder"] is False:
+            logger.debug(f'file found: {child["uri"]}')
+            if child["uri"] != "/index.json":
+                logger.debug("Returning False")
+                return False
         elif child["folder"] is True:
-            return recursive_search(storage_path, uri + child["uri"], token)
+            if not recursive_search(storage_path, uri + child["uri"], token):
+                return False
     return True
 
 
