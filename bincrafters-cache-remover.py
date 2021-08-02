@@ -122,16 +122,19 @@ def recursive_search(storage_path, uri, token):
     url = storage_path + uri
     logger.debug(f"GET: {url}")
     response = requests.get(url, headers=get_headers(token)).json()
-    logger.debug(f'CHILDREN: {response["children"]}')
-    for child in response["children"]:
-        if child["folder"] is False:
-            logger.debug(f'file found: {child["uri"]}')
-            if child["uri"] != "/index.json":
-                logger.debug("Returning False")
-                return False
-        elif child["folder"] is True:
-            if not recursive_search(storage_path, uri + child["uri"], token):
-                return False
+    try:
+        logger.debug(f'CHILDREN: {response["children"]}')
+        for child in response["children"]:
+            if child["folder"] is False:
+                logger.debug(f'file found: {child["uri"]}')
+                if child["uri"] != "/index.json":
+                    logger.debug("Returning False")
+                    return False
+            elif child["folder"] is True:
+                if not recursive_search(storage_path, uri + child["uri"], token):
+                    return False
+    except KeyError:
+        return True
     return True
 
 
